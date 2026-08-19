@@ -5,7 +5,7 @@ on:
 
 jobs:
   testflight:
-    runs-on: macos-15
+    runs-on: macos-26
 
     env:
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -20,6 +20,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Verify Xcode 26+
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          SDK_VERSION=$(xcrun --sdk iphoneos --show-sdk-version)
+          echo "iPhoneOS SDK: $SDK_VERSION"
+          MAJOR=${SDK_VERSION%%.*}
+          if (( MAJOR < 26 )); then
+            echo "iOS 26 SDK or later is required for App Store Connect upload."
+            exit 1
+          fi
 
       - name: Validate required secrets
         shell: bash
