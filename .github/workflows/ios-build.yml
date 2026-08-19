@@ -17,6 +17,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Prepare iOS assets
+        run: bash scripts/prepare_assets.sh
+
       - name: Install XcodeGen
         run: brew install xcodegen
 
