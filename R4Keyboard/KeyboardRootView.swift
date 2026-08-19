@@ -17,13 +17,6 @@ struct KeyboardRootView: View {
 
                 Spacer()
 
-                Button(action: reloadMessages) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.body)
-                        .foregroundStyle(R4Theme.green)
-                }
-                .accessibilityLabel(R4L10n.string("keyboard.refresh_accessibility"))
-
                 Button(action: nextKeyboard) {
                     Image(systemName: "globe")
                         .font(.title3)
