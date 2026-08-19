@@ -8,10 +8,12 @@ struct KeyboardRootView: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            HStack {
-                Text("R4")
-                    .font(.headline)
-                    .foregroundStyle(.white)
+            HStack(spacing: 10) {
+                Image("R4Logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 28)
+                    .accessibilityLabel("R4")
 
                 Spacer()
 
