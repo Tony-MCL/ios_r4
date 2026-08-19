@@ -14,6 +14,8 @@ jobs:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       IOS_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
       IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+      R4_PROVISIONING_PROFILE_BASE64: ${{ secrets.R4_PROVISIONING_PROFILE_BASE64 }}
+      R4_KEYBOARD_PROVISIONING_PROFILE_BASE64: ${{ secrets.R4_KEYBOARD_PROVISIONING_PROFILE_BASE64 }}
 
     steps:
       - name: Checkout
@@ -30,6 +32,8 @@ jobs:
             APPLE_TEAM_ID
             IOS_DISTRIBUTION_CERTIFICATE_BASE64
             IOS_DISTRIBUTION_CERTIFICATE_PASSWORD
+            R4_PROVISIONING_PROFILE_BASE64
+            R4_KEYBOARD_PROVISIONING_PROFILE_BASE64
           )
 
           missing=0
@@ -61,17 +65,13 @@ jobs:
           KEY_PATH="$RUNNER_TEMP/appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
           printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY_BASE64" | base64 --decode > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
-
-          # Fail here with a clear message if the secret is damaged before xcodebuild starts.
           openssl pkey -in "$KEY_PATH" -noout >/dev/null
-
           echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Import Apple Distribution certificate
         shell: bash
         run: |
           set -euo pipefail
-
           CERT_PATH="$RUNNER_TEMP/distribution.p12"
           KEYCHAIN_PATH="$RUNNER_TEMP/r4-signing.keychain-db"
           KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
@@ -83,20 +83,44 @@ jobs:
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security import "$CERT_PATH" \
             -P "$IOS_DISTRIBUTION_CERTIFICATE_PASSWORD" \
-            -A \
-            -t cert \
-            -f pkcs12 \
-            -k "$KEYCHAIN_PATH"
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
           security set-key-partition-list \
             -S apple-tool:,apple:,codesign: \
-            -s \
-            -k "$KEYCHAIN_PASSWORD" \
-            "$KEYCHAIN_PATH"
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
           EXISTING_KEYCHAINS=$(security list-keychains -d user | tr -d '"')
           security list-keychains -d user -s "$KEYCHAIN_PATH" $EXISTING_KEYCHAINS
-
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Install provisioning profiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILE_DIR"
+
+          APP_PROFILE_TMP="$RUNNER_TEMP/r4.mobileprovision"
+          KEYBOARD_PROFILE_TMP="$RUNNER_TEMP/r4-keyboard.mobileprovision"
+          printf '%s' "$R4_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$APP_PROFILE_TMP"
+          printf '%s' "$R4_KEYBOARD_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$KEYBOARD_PROFILE_TMP"
+
+          APP_PLIST="$RUNNER_TEMP/r4-profile.plist"
+          KEYBOARD_PLIST="$RUNNER_TEMP/r4-keyboard-profile.plist"
+          security cms -D -i "$APP_PROFILE_TMP" > "$APP_PLIST"
+          security cms -D -i "$KEYBOARD_PROFILE_TMP" > "$KEYBOARD_PLIST"
+
+          APP_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$APP_PLIST")
+          KEYBOARD_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$KEYBOARD_PLIST")
+          APP_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$APP_PLIST")
+          KEYBOARD_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$KEYBOARD_PLIST")
+
+          cp "$APP_PROFILE_TMP" "$PROFILE_DIR/$APP_UUID.mobileprovision"
+          cp "$KEYBOARD_PROFILE_TMP" "$PROFILE_DIR/$KEYBOARD_UUID.mobileprovision"
+
+          echo "R4_PROFILE_NAME=$APP_NAME" >> "$GITHUB_ENV"
+          echo "R4_KEYBOARD_PROFILE_NAME=$KEYBOARD_NAME" >> "$GITHUB_ENV"
+          echo "Installed app profile: $APP_NAME"
+          echo "Installed keyboard profile: $KEYBOARD_NAME"
 
       - name: Archive R4
         shell: bash
@@ -108,12 +132,9 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/R4.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
-            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             CURRENT_PROJECT_VERSION="${GITHUB_RUN_NUMBER}" \
             archive
 
@@ -130,9 +151,18 @@ jobs:
             <key>destination</key>
             <string>upload</string>
             <key>signingStyle</key>
-            <string>automatic</string>
+            <string>manual</string>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
             <key>teamID</key>
             <string>${APPLE_TEAM_ID}</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.morningcoffeelabs.r4</key>
+              <string>${R4_PROFILE_NAME}</string>
+              <key>com.morningcoffeelabs.r4.keyboard</key>
+              <string>${R4_KEYBOARD_PROFILE_NAME}</string>
+            </dict>
             <key>uploadSymbols</key>
             <true/>
           </dict>
@@ -148,7 +178,6 @@ jobs:
             -archivePath "$RUNNER_TEMP/R4.xcarchive" \
             -exportPath "$RUNNER_TEMP/export" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
-            -allowProvisioningUpdates \
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
             -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
