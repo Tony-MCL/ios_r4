@@ -105,14 +105,21 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.security.application-groups' "$KEYBOARD_PLIST"
           [[ "$APP_IDENTIFIER" == "${APPLE_TEAM_ID}.com.morningcoffeelabs.r4" ]]
           [[ "$KEYBOARD_IDENTIFIER" == "${APPLE_TEAM_ID}.com.morningcoffeelabs.r4.keyboard" ]]
+          [[ "$APP_NAME" == "R4 App Store" ]]
+          [[ "$KEYBOARD_NAME" == "R4 Keyboard" ]]
           cp "$APP_PROFILE_TMP" "$PROFILE_DIR/$APP_UUID.mobileprovision"
           cp "$KEYBOARD_PROFILE_TMP" "$PROFILE_DIR/$KEYBOARD_UUID.mobileprovision"
           echo "R4_PROFILE_NAME=$APP_NAME" >> "$GITHUB_ENV"
-          echo "R4_PROFILE_UUID=$APP_UUID" >> "$GITHUB_ENV"
           echo "R4_KEYBOARD_PROFILE_NAME=$KEYBOARD_NAME" >> "$GITHUB_ENV"
-          echo "R4_KEYBOARD_PROFILE_UUID=$KEYBOARD_UUID" >> "$GITHUB_ENV"
           echo "Validated app profile: $APP_NAME ($APP_UUID)"
           echo "Validated keyboard profile: $KEYBOARD_NAME ($KEYBOARD_UUID)"
+
+      - name: Show Release signing settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -project R4.xcodeproj -target R4 -configuration Release -showBuildSettings | grep -E 'PRODUCT_BUNDLE_IDENTIFIER|CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE_SPECIFIER|DEVELOPMENT_TEAM'
+          xcodebuild -project R4.xcodeproj -target R4Keyboard -configuration Release -showBuildSettings | grep -E 'PRODUCT_BUNDLE_IDENTIFIER|CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE_SPECIFIER|DEVELOPMENT_TEAM'
 
       - name: Archive R4
         shell: bash
@@ -124,11 +131,6 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/R4.xcarchive" \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            "R4.PROVISIONING_PROFILE_SPECIFIER=$R4_PROFILE_NAME" \
-            "R4Keyboard.PROVISIONING_PROFILE_SPECIFIER=$R4_KEYBOARD_PROFILE_NAME" \
             CURRENT_PROJECT_VERSION="${GITHUB_RUN_NUMBER}" \
             archive
 
