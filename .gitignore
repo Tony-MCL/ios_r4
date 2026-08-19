@@ -9,5 +9,14 @@ build/
 *.xcuserstate
 xcuserdata/
 
+# iOS signing material - NEVER COMMIT
+*.p8
+*.p12
+*.cer
+*.csr
+*.mobileprovision
+*.key
+Signing/
+
 # macOS
 .DS_Store
