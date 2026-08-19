@@ -4,32 +4,72 @@
 
 Build iteratively and pragmatically.
 
-The first objective is not a polished App Store build. The first objective is to prove the complete iOS-specific R4 workflow on a physical iPhone.
+The first objective is not a polished App Store build. The first objective is to prove the complete iOS-specific R4 workflow on the dedicated physical iPhone.
 
 Existing Android behavior is the product reference. iOS-native behavior is preferred whenever the platforms differ.
 
+## Fixed working environment
+
+Development is performed from a Windows Zenbook.
+
+The project must not depend on the developer owning or routinely using a Mac. Apple-specific compilation, signing, archiving and upload tasks are performed on a cloud-hosted macOS runner.
+
+Normal development loop:
+
+```text
+Windows / Zenbook
+      ↓
+GitHub
+      ↓
+GitHub Actions macOS runner
+      ↓
+Build / sign / archive / upload
+      ↓
+TestFlight
+      ↓
+Dedicated iPhone
+```
+
+No phase is considered properly implemented if it only works through undocumented manual Xcode configuration on a local Mac.
+
 ## Phase 0 – Production foundation
 
-Create the initial Xcode project and targets.
+Create the repository-controlled iOS project configuration and both targets without requiring local Xcode.
 
 ### Deliverables
 
-- Xcode project: `R4`
+- Repository-controlled project manifest/configuration
 - Main application target: `R4`
 - Keyboard extension target: `R4Keyboard`
 - Swift / SwiftUI foundation
 - Bundle identifiers
-- Signing configuration
-- App Group capability for both targets
-- Entitlements files
+- App Group identifiers and entitlements
 - Basic folder structure
-- Both targets compile
-- Main app installs and launches on a physical iPhone
-- Keyboard extension can be enabled on the physical iPhone
+- GitHub Actions macOS build workflow
+- Generated Xcode project on CI
+- Both targets compile on CI
+- Signing/TestFlight path documented and prepared
+
+### Phase 0A – unsigned CI proof
+
+Before Apple signing credentials are introduced, CI must be able to generate the project and compile the app + keyboard extension for an iOS simulator target.
+
+This proves that the project structure and source target membership are valid without requiring certificates or provisioning profiles.
+
+### Phase 0B – signed device/TestFlight proof
+
+Configure App Store Connect/signing credentials as GitHub secrets or equivalent protected CI configuration.
+
+The CI pipeline must then:
+
+- Build for a physical iOS device
+- Sign the main app and keyboard extension correctly
+- Archive the application
+- Upload a build to App Store Connect/TestFlight
 
 ### Exit criteria
 
-A blank/minimal R4 app and a blank/minimal R4 keyboard both run on a real device without signing or extension errors.
+A minimal R4 app and R4 keyboard are built entirely through GitHub-hosted macOS infrastructure and a build reaches the dedicated iPhone through TestFlight without requiring a local Mac.
 
 ## Phase 1 – Prove the keyboard workflow
 
@@ -61,7 +101,7 @@ Tapping the title inserts the stored message text.
 
 ### Step 3 – Permission validation
 
-Confirm on the physical device:
+Confirm on the dedicated physical iPhone:
 
 - Whether Full Access is required for the shared container
 - Exact user setup flow
@@ -235,20 +275,22 @@ If not, improve the core interaction before adding features.
 
 R4 iOS MVP is functionally complete when the user can:
 
-1. Install and launch R4 on iPhone.
-2. Understand how to enable the R4 keyboard.
-3. Create a message with title and text.
-4. Save the message locally.
-5. See stored messages in the main app.
-6. Edit a message.
-7. Delete a message safely.
-8. Open a normal text field in another app.
-9. Switch to the R4 keyboard.
-10. See stored message titles.
-11. Tap a title.
-12. Have the complete message inserted at the cursor.
-13. Switch back to another keyboard when needed.
-14. Use the core workflow without internet connectivity.
+1. Receive/install the current R4 build on the dedicated iPhone through TestFlight.
+2. Launch R4 on iPhone.
+3. Understand how to enable the R4 keyboard.
+4. Create a message with title and text.
+5. Save the message locally.
+6. See stored messages in the main app.
+7. Edit a message.
+8. Delete a message safely.
+9. Open a normal text field in another app.
+10. Switch to the R4 keyboard.
+11. See stored message titles.
+12. Tap a title.
+13. Have the complete message inserted at the cursor.
+14. Switch back to another keyboard when needed.
+15. Use the core workflow without internet connectivity.
+16. Build and release updates without requiring a local Mac.
 
 ## Working rule
 
