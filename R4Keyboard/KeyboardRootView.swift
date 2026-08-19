@@ -20,18 +20,18 @@ struct KeyboardRootView: View {
                         .font(.body)
                         .foregroundStyle(R4Theme.green)
                 }
-                .accessibilityLabel("Refresh messages")
+                .accessibilityLabel(R4L10n.string("keyboard.refresh_accessibility"))
 
                 Button(action: nextKeyboard) {
                     Image(systemName: "globe")
                         .font(.title3)
                         .foregroundStyle(R4Theme.green)
                 }
-                .accessibilityLabel("Next keyboard")
+                .accessibilityLabel(R4L10n.string("keyboard.next_accessibility"))
             }
 
             if messages.isEmpty {
-                Text("No saved messages")
+                Text(R4L10n.string("keyboard.empty"))
                     .foregroundStyle(R4Theme.muted)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 12)

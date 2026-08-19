@@ -1,3 +1,3 @@
-"No saved messages" = "Ingen lagrede meldinger";
-"Refresh messages" = "Oppdater meldinger";
-"Next keyboard" = "Neste tastatur";
+"keyboard.empty" = "Ingen lagrede meldinger";
+"keyboard.refresh_accessibility" = "Oppdater meldinger";
+"keyboard.next_accessibility" = "Neste tastatur";

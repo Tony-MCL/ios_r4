@@ -1,3 +1,3 @@
-"No saved messages" = "No hay mensajes guardados";
-"Refresh messages" = "Actualizar mensajes";
-"Next keyboard" = "Siguiente teclado";
+"keyboard.empty" = "No hay mensajes guardados";
+"keyboard.refresh_accessibility" = "Actualizar mensajes";
+"keyboard.next_accessibility" = "Siguiente teclado";

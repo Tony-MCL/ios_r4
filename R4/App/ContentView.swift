@@ -20,11 +20,11 @@ struct ContentView: View {
                 ScrollView {
                     LazyVStack(spacing: 10) {
                         header
-                        actionCard(icon: "+", title: "New message", subtitle: "Create a new message") {
+                        actionCard(icon: "+", title: R4L10n.string("home.new_message"), subtitle: R4L10n.string("home.new_message_subtitle")) {
                             editingMessage = nil
                             showingEditor = true
                         }
-                        actionCard(icon: "☷", title: "My messages", subtitle: "Manage your messages (\(messages.count))") {
+                        actionCard(icon: "☷", title: R4L10n.string("home.my_messages"), subtitle: R4L10n.format("home.manage_messages_count", messages.count)) {
                             withAnimation { showMessages.toggle() }
                         }
 
@@ -50,30 +50,30 @@ struct ContentView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
-        .alert("Delete message?", isPresented: Binding(
+        .alert(R4L10n.string("delete.title"), isPresented: Binding(
             get: { pendingDelete != nil },
             set: { if !$0 { pendingDelete = nil } }
         )) {
-            Button("Cancel", role: .cancel) { pendingDelete = nil }
-            Button("Delete", role: .destructive) { deletePendingMessage() }
+            Button(R4L10n.string("common.cancel"), role: .cancel) { pendingDelete = nil }
+            Button(R4L10n.string("common.delete"), role: .destructive) { deletePendingMessage() }
         } message: {
-            Text("“\(pendingDelete?.title ?? "")” will be permanently deleted from this device.")
+            Text(R4L10n.format("delete.message_body", pendingDelete?.title ?? ""))
         }
-        .alert("How R4 works on iPhone", isPresented: Binding(
+        .alert(R4L10n.string("first_run.title"), isPresented: Binding(
             get: { !firstRunShown },
             set: { if !$0 { firstRunShown = true } }
         )) {
-            Button("Got it") { firstRunShown = true }
+            Button(R4L10n.string("common.got_it")) { firstRunShown = true }
         } message: {
-            Text("Save the messages you use often in R4. Then add R4 Keyboard in Settings → General → Keyboard → Keyboards → Add New Keyboard. Enable Allow Full Access, switch to R4 Keyboard in any normal text field, and tap a message title to insert the full text.")
+            Text(R4L10n.string("first_run.body"))
         }
-        .alert("Could not save", isPresented: Binding(
+        .alert(R4L10n.string("error.save_title"), isPresented: Binding(
             get: { saveError != nil },
             set: { if !$0 { saveError = nil } }
         )) {
-            Button("OK", role: .cancel) { saveError = nil }
+            Button(R4L10n.string("common.ok"), role: .cancel) { saveError = nil }
         } message: {
-            Text(saveError ?? "Unknown error")
+            Text(saveError ?? R4L10n.string("error.unknown"))
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
@@ -85,8 +85,7 @@ struct ContentView: View {
     private var header: some View {
         VStack(spacing: 2) {
             HStack(alignment: .top) {
-                Spacer()
-                    .frame(maxWidth: .infinity)
+                Spacer().frame(maxWidth: .infinity)
 
                 Image("R4Logo")
                     .resizable()
@@ -105,11 +104,11 @@ struct ContentView: View {
                         .padding(.top, 14)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Settings and info")
+                .accessibilityLabel(R4L10n.string("accessibility.settings"))
             }
             .padding(.top, 16)
 
-            Text("FLOAT · SAVE · SEND · EASY!!")
+            Text(R4L10n.string("home.tagline"))
                 .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
@@ -121,7 +120,7 @@ struct ContentView: View {
     @ViewBuilder
     private var messageArchive: some View {
         if messages.isEmpty {
-            Text("No messages yet. Create the first one by writing or pasting the text you want to save.")
+            Text(R4L10n.string("home.no_messages"))
                 .font(.system(size: 15))
                 .foregroundStyle(R4Theme.muted)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -140,20 +139,20 @@ struct ContentView: View {
                 iconBox(systemName: "keyboard")
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("R4 Keyboard")
+                    Text(R4L10n.string("keyboard.title"))
                         .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(.white)
-                    Text("Use your saved messages in other apps")
+                    Text(R4L10n.string("keyboard.subtitle"))
                         .font(.system(size: 15))
                         .foregroundStyle(R4Theme.muted)
                 }
             }
 
-            Text("Add R4 Keyboard in iPhone Settings, enable Allow Full Access, then switch keyboards from any normal text field.")
+            Text(R4L10n.string("keyboard.instructions_short"))
                 .font(.system(size: 14))
                 .foregroundStyle(R4Theme.muted)
 
-            Button("Keyboard setup") {
+            Button(R4L10n.string("keyboard.setup_button")) {
                 showingSettings = true
             }
             .buttonStyle(R4PrimaryButtonStyle())
@@ -208,13 +207,13 @@ struct ContentView: View {
                 .foregroundStyle(.white)
 
             HStack(spacing: 18) {
-                Button("Edit") {
+                Button(R4L10n.string("common.edit")) {
                     editingMessage = message
                     showingEditor = true
                 }
                 .foregroundStyle(R4Theme.green)
 
-                Button("Delete") {
+                Button(R4L10n.string("common.delete")) {
                     pendingDelete = message
                 }
                 .foregroundStyle(R4Theme.muted)
@@ -243,7 +242,7 @@ struct ContentView: View {
     }
 
     private var copyrightFooter: some View {
-        Text("© 2026 Morning Coffee Labs")
+        Text(R4L10n.string("footer.copyright"))
             .font(.system(size: 12))
             .foregroundStyle(R4Theme.muted.opacity(0.72))
             .frame(maxWidth: .infinity)

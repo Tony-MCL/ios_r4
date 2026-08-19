@@ -22,18 +22,18 @@ struct MessageEditorView: View {
                 R4Theme.background.ignoresSafeArea()
 
                 VStack(alignment: .leading, spacing: 14) {
-                    Text(existingMessage == nil ? "New message" : "Edit message")
+                    Text(R4L10n.string(existingMessage == nil ? "editor.new_title" : "editor.edit_title"))
                         .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(.white)
 
-                    Text("Emoji, line breaks, blank lines and spaces are preserved.")
+                    Text(R4L10n.string("editor.format_preserved"))
                         .font(.system(size: 14))
                         .foregroundStyle(R4Theme.muted)
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Title")
+                        Text(R4L10n.string("editor.title_label"))
                             .foregroundStyle(R4Theme.muted)
-                        TextField("🐻 Bear, KvK, Alliance Rules …", text: $title)
+                        TextField(R4L10n.string("editor.title_placeholder"), text: $title)
                             .textFieldStyle(.plain)
                             .padding(12)
                             .background(R4Theme.surface, in: RoundedRectangle(cornerRadius: 10))
@@ -45,7 +45,7 @@ struct MessageEditorView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Text")
+                        Text(R4L10n.string("editor.text_label"))
                             .foregroundStyle(R4Theme.muted)
                         TextEditor(text: $text)
                             .scrollContentBackground(.hidden)
@@ -61,10 +61,10 @@ struct MessageEditorView: View {
                     .frame(maxHeight: .infinity)
 
                     HStack(spacing: 10) {
-                        Button("Cancel") { dismiss() }
+                        Button(R4L10n.string("common.cancel")) { dismiss() }
                             .buttonStyle(R4SecondaryButtonStyle())
 
-                        Button("Save") {
+                        Button(R4L10n.string("common.save")) {
                             onSave(title, text)
                         }
                         .buttonStyle(R4PrimaryButtonStyle())

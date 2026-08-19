@@ -1,3 +1,3 @@
-"No saved messages" = "저장된 메시지가 없습니다";
-"Refresh messages" = "메시지 새로고침";
-"Next keyboard" = "다음 키보드";
+"keyboard.empty" = "저장된 메시지가 없습니다";
+"keyboard.refresh_accessibility" = "메시지 새로고침";
+"keyboard.next_accessibility" = "다음 키보드";

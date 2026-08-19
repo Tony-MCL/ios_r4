@@ -15,32 +15,32 @@ struct SettingsView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
-                        Button("← Back") { dismiss() }
+                        Button(R4L10n.string("common.back")) { dismiss() }
                             .foregroundStyle(R4Theme.green)
                             .padding(.top, 16)
 
-                        Text("Settings and info")
+                        Text(R4L10n.string("settings.title"))
                             .font(.system(size: 28, weight: .bold))
                             .foregroundStyle(.white)
                             .padding(.bottom, 6)
 
-                        expandableCard(title: "About R4", expanded: $aboutExpanded) {
-                            Text("R4 is a local message archive designed to keep frequently used text immediately available while you stay in another app. Create and manage messages in R4, then switch to R4 Keyboard in any normal text field. Tap a saved message title and R4 inserts the full text at the cursor. R4 preserves emoji, line breaks, blank lines and spaces, does not alter your text, and does not send anything on your behalf.")
+                        expandableCard(title: R4L10n.string("settings.about_title"), expanded: $aboutExpanded) {
+                            Text(R4L10n.string("settings.about_body"))
                                 .foregroundStyle(R4Theme.muted)
                                 .font(.system(size: 15))
                         }
 
-                        expandableCard(title: "R4 Keyboard setup", expanded: $setupExpanded) {
+                        expandableCard(title: R4L10n.string("settings.keyboard_setup_title"), expanded: $setupExpanded) {
                             VStack(alignment: .leading, spacing: 10) {
-                                Text("1. Open iPhone Settings\n2. General → Keyboard → Keyboards\n3. Tap Add New Keyboard…\n4. Select R4 Keyboard\n5. Open R4 Keyboard in the keyboard list\n6. Enable Allow Full Access")
+                                Text(R4L10n.string("settings.keyboard_setup_steps"))
                                     .foregroundStyle(R4Theme.muted)
                                     .font(.system(size: 15))
 
-                                Text("Full Access allows the R4 keyboard extension to read the saved messages from R4's private shared App Group. R4 does not transmit your saved messages or unrelated keyboard input.")
+                                Text(R4L10n.string("settings.full_access_explanation"))
                                     .foregroundStyle(R4Theme.muted)
                                     .font(.system(size: 14))
 
-                                Button("Open R4 settings") {
+                                Button(R4L10n.string("settings.open_r4_settings")) {
                                     if let url = URL(string: UIApplication.openSettingsURLString) {
                                         openURL(url)
                                     }
@@ -49,13 +49,13 @@ struct SettingsView: View {
                             }
                         }
 
-                        settingsCard(title: "Links") {
-                            linkRow("Privacy policy", url: "https://morningcoffeelabs.no/r4/privacy")
-                            linkRow("Terms of use", url: "https://morningcoffeelabs.no/r4/terms")
-                            linkRow("Contact", url: "mailto:post@morningcoffeelabs.no")
+                        settingsCard(title: R4L10n.string("settings.links_title")) {
+                            linkRow(R4L10n.string("settings.privacy_policy"), url: "https://morningcoffeelabs.no/r4/privacy")
+                            linkRow(R4L10n.string("settings.terms_of_use"), url: "https://morningcoffeelabs.no/r4/terms")
+                            linkRow(R4L10n.string("settings.contact"), url: "mailto:post@morningcoffeelabs.no")
                         }
 
-                        Text("© 2026 Morning Coffee Labs")
+                        Text(R4L10n.string("footer.copyright"))
                             .font(.system(size: 12))
                             .foregroundStyle(R4Theme.muted.opacity(0.72))
                             .frame(maxWidth: .infinity)

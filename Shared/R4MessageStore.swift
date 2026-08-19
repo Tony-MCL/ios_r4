@@ -37,10 +37,7 @@ enum R4MessageStore {
         case appGroupUnavailable
 
         var errorDescription: String? {
-            switch self {
-            case .appGroupUnavailable:
-                return "R4 could not open the shared App Group container."
-            }
+            R4L10n.string("error.save_title")
         }
     }
 }
