@@ -1,0 +1,147 @@
+name: TestFlight
+
+on:
+  workflow_dispatch:
+
+jobs:
+  testflight:
+    runs-on: macos-15
+
+    env:
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      IOS_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
+      IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            APP_STORE_CONNECT_ISSUER_ID
+            APP_STORE_CONNECT_KEY_ID
+            APP_STORE_CONNECT_PRIVATE_KEY
+            APPLE_TEAM_ID
+            IOS_DISTRIBUTION_CERTIFICATE_BASE64
+            IOS_DISTRIBUTION_CERTIFICATE_PASSWORD
+          )
+
+          missing=0
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing GitHub secret: $name"
+              missing=1
+            fi
+          done
+
+          if [[ "$missing" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Prepare App Store Connect API key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/appstoreconnect/private_keys"
+          KEY_PATH="$RUNNER_TEMP/appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Import Apple Distribution certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          CERT_PATH="$RUNNER_TEMP/distribution.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/r4-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+
+          printf '%s' "$IOS_DISTRIBUTION_CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" \
+            -P "$IOS_DISTRIBUTION_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "$KEYCHAIN_PASSWORD" \
+            "$KEYCHAIN_PATH"
+
+          EXISTING_KEYCHAINS=$(security list-keychains -d user | tr -d '"')
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $EXISTING_KEYCHAINS
+
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Archive R4
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project R4.xcodeproj \
+            -scheme R4 \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/R4.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="${GITHUB_RUN_NUMBER}" \
+            archive
+
+      - name: Create export options
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>destination</key>
+            <string>upload</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string>${APPLE_TEAM_ID}</string>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Upload archive to App Store Connect
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$RUNNER_TEMP/R4.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
