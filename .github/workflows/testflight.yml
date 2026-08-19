@@ -10,7 +10,7 @@ jobs:
     env:
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+      APP_STORE_CONNECT_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       IOS_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
       IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
@@ -26,7 +26,7 @@ jobs:
           required=(
             APP_STORE_CONNECT_ISSUER_ID
             APP_STORE_CONNECT_KEY_ID
-            APP_STORE_CONNECT_PRIVATE_KEY
+            APP_STORE_CONNECT_PRIVATE_KEY_BASE64
             APPLE_TEAM_ID
             IOS_DISTRIBUTION_CERTIFICATE_BASE64
             IOS_DISTRIBUTION_CERTIFICATE_PASSWORD
@@ -59,8 +59,12 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/appstoreconnect/private_keys"
           KEY_PATH="$RUNNER_TEMP/appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
-          printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$KEY_PATH"
+          printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY_BASE64" | base64 --decode > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
+
+          # Fail here with a clear message if the secret is damaged before xcodebuild starts.
+          openssl pkey -in "$KEY_PATH" -noout >/dev/null
+
           echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Import Apple Distribution certificate
