@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned / ready for development.
+Planned / development started.
 
 ## Goal
 
@@ -17,10 +17,42 @@ The product principles remain unchanged:
 - Local
 - No account
 - No backend
-- No required internet connection
+- No required internet connection for core use
 - No AI
 - Minimal number of taps
 - User-controlled, not automated
+
+## Fixed development constraint: no local Mac
+
+The developer workstation is Windows (Zenbook). The project must not require ownership or routine use of a Mac or MacBook.
+
+The only physical Apple device assumed for normal testing is a dedicated iPhone receiving builds through TestFlight.
+
+Apple's iOS toolchain still requires macOS/Xcode for compilation, signing and App Store/TestFlight delivery. That macOS environment must therefore be provided by cloud CI rather than by the developer's local hardware.
+
+The intended workflow is:
+
+```text
+Windows / Zenbook
+      ↓
+GitHub repository
+      ↓
+GitHub Actions macOS runner
+      ↓
+Xcode build / signing / archive
+      ↓
+App Store Connect / TestFlight
+      ↓
+Dedicated test iPhone
+```
+
+### Project rule
+
+No normal development or release step may depend on the developer manually opening Xcode on a personally owned Mac.
+
+Project configuration, capabilities, source files and build automation must live in the repository wherever practical so the build is reproducible from GitHub Actions.
+
+A cloud-hosted macOS runner is an accepted infrastructure dependency because Apple's toolchain requires macOS. A physical Mac as a developer workstation is not.
 
 ## Technology
 
@@ -29,55 +61,42 @@ The product principles remain unchanged:
 - UIKit-hosted Custom Keyboard Extension with SwiftUI content where practical
 - App Groups for shared local storage
 - JSON-based message storage for the MVP
+- GitHub Actions macOS runner for iOS compilation and TestFlight delivery
+- Xcode project configuration stored/generated from repository-controlled files
 
-## Repository and Xcode structure
+## Repository and project structure
 
-R4 iOS is a separate repository from Android, but the main app and keyboard extension live in the same Xcode project.
+R4 iOS is a separate repository from Android, but the main app and keyboard extension belong to the same iOS project.
 
 ```text
-r4-ios/
-├── R4.xcodeproj
+ios_r4/
+├── project.yml
 ├── R4/
 │   ├── App/
 │   │   └── R4App.swift
 │   ├── Features/
 │   │   ├── Messages/
-│   │   │   ├── MessageListView.swift
-│   │   │   ├── MessageEditorView.swift
-│   │   │   └── MessageRowView.swift
 │   │   ├── Settings/
-│   │   │   ├── SettingsView.swift
-│   │   │   └── AboutView.swift
 │   │   └── Onboarding/
-│   │       └── KeyboardSetupView.swift
 │   ├── Design/
-│   │   ├── R4Colors.swift
-│   │   ├── R4Typography.swift
-│   │   └── R4Components.swift
 │   ├── Resources/
-│   │   ├── Assets.xcassets
-│   │   ├── Localizable.xcstrings
-│   │   └── InfoPlist.xcstrings
 │   └── Supporting/
-│       └── R4.entitlements
 ├── R4Keyboard/
 │   ├── KeyboardViewController.swift
 │   ├── KeyboardRootView.swift
-│   ├── KeyboardMessageRow.swift
-│   ├── Info.plist
-│   └── R4Keyboard.entitlements
+│   ├── Resources/
+│   └── Supporting/
 ├── Shared/
 │   ├── Models/
-│   │   └── Message.swift
 │   ├── Storage/
-│   │   ├── MessageStore.swift
-│   │   └── SharedContainer.swift
 │   ├── Design/
-│   │   └── SharedDesignTokens.swift
 │   └── Configuration/
-│       └── R4Constants.swift
+├── .github/
+│   └── workflows/
 └── docs/
 ```
+
+For the Windows-first workflow, the Xcode project may be generated on the macOS runner from a repository-controlled project manifest instead of relying on manual Xcode project editing. This keeps target membership, bundle settings and capabilities reviewable in Git.
 
 The files in `Shared/` are compiled into both targets. A separate Swift package is intentionally avoided for the MVP because it would add structure without solving a current problem.
 
@@ -188,7 +207,7 @@ Access to the shared App Group container from a third-party keyboard may require
 
 R4 remains local even if this permission is required. The product must explain clearly that Full Access is used only so the keyboard can access messages stored by the R4 app and that R4 does not transmit typed text or stored messages to a server.
 
-This requirement must be validated on a physical iPhone during the first technical phase before substantial UI work begins.
+This requirement must be validated on the dedicated physical iPhone during the first technical phase before substantial UI work begins.
 
 ## Keyboard design principle
 
@@ -232,16 +251,7 @@ The iOS version should reproduce as closely as practical:
 
 The implementation remains native SwiftUI. Jetpack Compose structures should not be copied mechanically.
 
-Shared design values should be centralized, for example:
-
-```text
-R4Colors
-R4Typography
-R4Components
-SharedDesignTokens
-```
-
-This keeps the main app and keyboard visually consistent without introducing a large design-system abstraction.
+Shared design values should be centralized without introducing a large design-system abstraction.
 
 ## Platform limitations to accept
 
@@ -271,6 +281,7 @@ Do not add the following without a deliberate scope decision:
 - Full typing keyboard
 - Overlay emulation
 - SwiftData/Core Data without a demonstrated need
+- Local-Mac-only build procedures
 
 ## Architecture rule
 
