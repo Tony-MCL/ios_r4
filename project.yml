@@ -23,6 +23,12 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CURRENT_PROJECT_VERSION: 1
         MARKETING_VERSION: 1.0.0
+      configs:
+        Release:
+          DEVELOPMENT_TEAM: KX466RJMXK
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: Apple Distribution
+          PROVISIONING_PROFILE_SPECIFIER: R4 App Store
     dependencies:
       - target: R4Keyboard
         embed: true
@@ -41,6 +47,12 @@ targets:
         CURRENT_PROJECT_VERSION: 1
         MARKETING_VERSION: 1.0.0
         SKIP_INSTALL: YES
+      configs:
+        Release:
+          DEVELOPMENT_TEAM: KX466RJMXK
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: Apple Distribution
+          PROVISIONING_PROFILE_SPECIFIER: R4 Keyboard
 
 schemes:
   R4:
