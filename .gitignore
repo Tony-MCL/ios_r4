@@ -9,6 +9,10 @@ build/
 *.xcuserstate
 xcuserdata/
 
+# Generated iOS assets (derived from public/ master files)
+R4/Resources/Assets.xcassets/AppIcon.appiconset/r4-icon-1024.png
+R4/Resources/Assets.xcassets/R4Logo.imageset/r4-logo.png
+
 # iOS signing material - NEVER COMMIT
 *.p8
 *.p12
