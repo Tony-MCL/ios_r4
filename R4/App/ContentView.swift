@@ -3,9 +3,12 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
         NavigationStack {
-            VStack(spacing: 16) {
-                Text("R4")
-                    .font(.largeTitle.bold())
+            VStack(spacing: 20) {
+                Image("R4Logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: 260)
+                    .accessibilityLabel("R4")
 
                 Text("iOS foundation build")
                     .foregroundStyle(.secondary)
