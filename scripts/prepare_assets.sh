@@ -7,6 +7,8 @@ SOURCE_LOGO="$ROOT_DIR/public/r4-logo.png"
 ASSET_ROOT="$ROOT_DIR/R4/Resources/Assets.xcassets"
 APP_ICON_DIR="$ASSET_ROOT/AppIcon.appiconset"
 LOGO_DIR="$ASSET_ROOT/R4Logo.imageset"
+KEYBOARD_ASSET_ROOT="$ROOT_DIR/R4Keyboard/Resources/Assets.xcassets"
+KEYBOARD_LOGO_DIR="$KEYBOARD_ASSET_ROOT/R4Logo.imageset"
 
 if [[ ! -f "$SOURCE_ICON" ]]; then
   echo "Missing source icon: $SOURCE_ICON" >&2
@@ -18,7 +20,7 @@ if [[ ! -f "$SOURCE_LOGO" ]]; then
   exit 1
 fi
 
-mkdir -p "$APP_ICON_DIR" "$LOGO_DIR"
+mkdir -p "$APP_ICON_DIR" "$LOGO_DIR" "$KEYBOARD_LOGO_DIR"
 
 # Apple requires a 1024x1024 marketing/app icon source. The repository master
 # can remain larger; CI derives the production asset deterministically.
@@ -26,5 +28,9 @@ sips -z 1024 1024 "$SOURCE_ICON" --out "$APP_ICON_DIR/r4-icon-1024.png" >/dev/nu
 
 # Keep the in-app logo at the original uploaded resolution/transparency.
 cp "$SOURCE_LOGO" "$LOGO_DIR/r4-logo.png"
+
+# The keyboard extension is a separate bundle and therefore needs its own
+# copy of the logo asset even though it uses the same source artwork.
+cp "$SOURCE_LOGO" "$KEYBOARD_LOGO_DIR/r4-logo.png"
 
 echo "Prepared R4 iOS assets."
