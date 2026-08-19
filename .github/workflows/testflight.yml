@@ -44,6 +44,9 @@ jobs:
             exit 1
           fi
 
+      - name: Prepare iOS assets
+        run: bash scripts/prepare_assets.sh
+
       - name: Install XcodeGen
         run: brew install xcodegen
 
