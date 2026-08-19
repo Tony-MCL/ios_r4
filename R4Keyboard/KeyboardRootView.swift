@@ -65,6 +65,7 @@ struct KeyboardRootView: View {
                         }
                     }
                 }
+                .scrollIndicators(.visible)
             }
         }
         .padding(12)
