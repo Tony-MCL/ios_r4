@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var statusMessage = "No shared test message saved yet."
+    @State private var showResult = false
 
     var body: some View {
         NavigationStack {
@@ -16,14 +17,7 @@ struct ContentView: View {
                     .font(.headline)
 
                 Button("Save test message") {
-                    let saved = SharedTestMessage.save(
-                        title: "Shared Bear",
-                        text: "Shared test message from R4"
-                    )
-
-                    statusMessage = saved
-                        ? "Saved to the R4 shared App Group."
-                        : "Could not open the R4 shared App Group."
+                    saveTestMessage()
                 }
                 .buttonStyle(.borderedProminent)
 
@@ -38,7 +32,33 @@ struct ContentView: View {
             }
             .padding()
             .navigationTitle("R4")
+            .alert("R4 App Group test", isPresented: $showResult) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(statusMessage)
+            }
         }
+    }
+
+    private func saveTestMessage() {
+        do {
+            try SharedTestMessage.save(
+                title: "Shared Bear",
+                text: "Shared test message from R4"
+            )
+
+            guard let loaded = SharedTestMessage.load() else {
+                statusMessage = "The file was written, but R4 could not read it back."
+                showResult = true
+                return
+            }
+
+            statusMessage = "Saved and read back: \(loaded.title)"
+        } catch {
+            statusMessage = "Save failed: \(error.localizedDescription)"
+        }
+
+        showResult = true
     }
 }
 
