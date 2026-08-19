@@ -4,7 +4,7 @@ struct KeyboardRootView: View {
     let insertText: (String) -> Void
     let nextKeyboard: () -> Void
 
-    @State private var sharedMessage: (title: String, text: String)?
+    @State private var sharedMessage: SharedTestMessagePayload?
 
     var body: some View {
         VStack(spacing: 12) {
