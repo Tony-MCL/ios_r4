@@ -35,7 +35,6 @@ jobs:
             R4_PROVISIONING_PROFILE_BASE64
             R4_KEYBOARD_PROVISIONING_PROFILE_BASE64
           )
-
           missing=0
           for name in "${required[@]}"; do
             if [[ -z "${!name:-}" ]]; then
@@ -43,10 +42,7 @@ jobs:
               missing=1
             fi
           done
-
-          if [[ "$missing" -ne 0 ]]; then
-            exit 1
-          fi
+          if [[ "$missing" -ne 0 ]]; then exit 1; fi
 
       - name: Prepare iOS assets
         run: bash scripts/prepare_assets.sh
@@ -75,52 +71,48 @@ jobs:
           CERT_PATH="$RUNNER_TEMP/distribution.p12"
           KEYCHAIN_PATH="$RUNNER_TEMP/r4-signing.keychain-db"
           KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
-
           printf '%s' "$IOS_DISTRIBUTION_CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
-
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security import "$CERT_PATH" \
-            -P "$IOS_DISTRIBUTION_CERTIFICATE_PASSWORD" \
-            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-          security set-key-partition-list \
-            -S apple-tool:,apple:,codesign: \
-            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
+          security import "$CERT_PATH" -P "$IOS_DISTRIBUTION_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           EXISTING_KEYCHAINS=$(security list-keychains -d user | tr -d '"')
           security list-keychains -d user -s "$KEYCHAIN_PATH" $EXISTING_KEYCHAINS
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
 
-      - name: Install provisioning profiles
+      - name: Install and validate provisioning profiles
         shell: bash
         run: |
           set -euo pipefail
           PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PROFILE_DIR"
-
           APP_PROFILE_TMP="$RUNNER_TEMP/r4.mobileprovision"
           KEYBOARD_PROFILE_TMP="$RUNNER_TEMP/r4-keyboard.mobileprovision"
           printf '%s' "$R4_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$APP_PROFILE_TMP"
           printf '%s' "$R4_KEYBOARD_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$KEYBOARD_PROFILE_TMP"
-
           APP_PLIST="$RUNNER_TEMP/r4-profile.plist"
           KEYBOARD_PLIST="$RUNNER_TEMP/r4-keyboard-profile.plist"
           security cms -D -i "$APP_PROFILE_TMP" > "$APP_PLIST"
           security cms -D -i "$KEYBOARD_PROFILE_TMP" > "$KEYBOARD_PLIST"
-
           APP_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$APP_PLIST")
           KEYBOARD_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$KEYBOARD_PLIST")
           APP_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$APP_PLIST")
           KEYBOARD_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$KEYBOARD_PLIST")
-
+          APP_IDENTIFIER=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$APP_PLIST")
+          KEYBOARD_IDENTIFIER=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$KEYBOARD_PLIST")
+          /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.security.application-groups' "$APP_PLIST"
+          /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.security.application-groups' "$KEYBOARD_PLIST"
+          [[ "$APP_IDENTIFIER" == "${APPLE_TEAM_ID}.com.morningcoffeelabs.r4" ]]
+          [[ "$KEYBOARD_IDENTIFIER" == "${APPLE_TEAM_ID}.com.morningcoffeelabs.r4.keyboard" ]]
           cp "$APP_PROFILE_TMP" "$PROFILE_DIR/$APP_UUID.mobileprovision"
           cp "$KEYBOARD_PROFILE_TMP" "$PROFILE_DIR/$KEYBOARD_UUID.mobileprovision"
-
           echo "R4_PROFILE_NAME=$APP_NAME" >> "$GITHUB_ENV"
+          echo "R4_PROFILE_UUID=$APP_UUID" >> "$GITHUB_ENV"
           echo "R4_KEYBOARD_PROFILE_NAME=$KEYBOARD_NAME" >> "$GITHUB_ENV"
-          echo "Installed app profile: $APP_NAME"
-          echo "Installed keyboard profile: $KEYBOARD_NAME"
+          echo "R4_KEYBOARD_PROFILE_UUID=$KEYBOARD_UUID" >> "$GITHUB_ENV"
+          echo "Validated app profile: $APP_NAME ($APP_UUID)"
+          echo "Validated keyboard profile: $KEYBOARD_NAME ($KEYBOARD_UUID)"
 
       - name: Archive R4
         shell: bash
@@ -135,6 +127,8 @@ jobs:
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
+            "R4.PROVISIONING_PROFILE_SPECIFIER=$R4_PROFILE_NAME" \
+            "R4Keyboard.PROVISIONING_PROFILE_SPECIFIER=$R4_KEYBOARD_PROFILE_NAME" \
             CURRENT_PROJECT_VERSION="${GITHUB_RUN_NUMBER}" \
             archive
 
@@ -146,25 +140,17 @@ jobs:
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-            <key>destination</key>
-            <string>upload</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>signingCertificate</key>
-            <string>Apple Distribution</string>
-            <key>teamID</key>
-            <string>${APPLE_TEAM_ID}</string>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
             <key>provisioningProfiles</key>
             <dict>
-              <key>com.morningcoffeelabs.r4</key>
-              <string>${R4_PROFILE_NAME}</string>
-              <key>com.morningcoffeelabs.r4.keyboard</key>
-              <string>${R4_KEYBOARD_PROFILE_NAME}</string>
+              <key>com.morningcoffeelabs.r4</key><string>${R4_PROFILE_NAME}</string>
+              <key>com.morningcoffeelabs.r4.keyboard</key><string>${R4_KEYBOARD_PROFILE_NAME}</string>
             </dict>
-            <key>uploadSymbols</key>
-            <true/>
+            <key>uploadSymbols</key><true/>
           </dict>
           </plist>
           EOF
