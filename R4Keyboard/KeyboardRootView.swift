@@ -4,6 +4,8 @@ struct KeyboardRootView: View {
     let insertText: (String) -> Void
     let nextKeyboard: () -> Void
 
+    @State private var sharedMessage: (title: String, text: String)?
+
     var body: some View {
         VStack(spacing: 12) {
             HStack {
@@ -19,22 +21,33 @@ struct KeyboardRootView: View {
                 .accessibilityLabel("Next keyboard")
             }
 
-            Button {
-                insertText("Test message from R4")
-            } label: {
-                HStack {
-                    Text("Bear")
-                        .font(.body.weight(.semibold))
-                    Spacer()
+            if let sharedMessage {
+                Button {
+                    insertText(sharedMessage.text)
+                } label: {
+                    HStack {
+                        Text(sharedMessage.title)
+                            .font(.body.weight(.semibold))
+                        Spacer()
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 14)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
                 }
-                .padding(.vertical, 12)
-                .padding(.horizontal, 14)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                .buttonStyle(.plain)
+            } else {
+                Text("No shared R4 message found")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.plain)
 
             Spacer(minLength: 0)
         }
         .padding(12)
+        .onAppear(perform: reloadSharedMessage)
+    }
+
+    private func reloadSharedMessage() {
+        sharedMessage = SharedTestMessage.load()
     }
 }
